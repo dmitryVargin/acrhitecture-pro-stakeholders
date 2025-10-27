@@ -1,0 +1,44 @@
+﻿```puml
+@startuml Containers
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+
+title Диаграмма Контейнеров (Уровень 2 C4) - Открытие депозитов онлайн (MVP)
+
+Person(new_user, "Новый пользователь")
+Person(nexisting_user, "Существующий пользователь")
+Person(bo_manager, "Сотрудник Бэк-офиса")
+
+
+Container(website, "Сайт", "PHP + React.js", "UI")
+Container(ib, "Интернет-банк (ИБ)", "ASP.NET MVC 4.5 / MS SQL","UI")
+Container(abs, "АБС", "Delphi + Oracle DB", "Основная учетная система, мастер-данные по ставкам.")
+Container(scc, "Система Кол-центра", "Внешнее ПО", "Обработка заявок с Сайта.")
+Container(sms_gateway, "СМС-шлюз", "Внешнее API", "Отправка смс.")
+Container(rates_service, "Сервис Ставок", "Java/Spring Boot или .NET Core", "Предоставляет актуальные и персонализированные ставки.")
+Container(rates_db, "База Данных Ставок", "PostgreSQL", "Хранит ставки")
+Container(redis, "Redis", , "Кеширует ставки")
+Container(application_service, "Сервис Заявок", "Java/Spring Boot или .NET Core", "Получает и хранит заявки из интернет банка")
+Container(kafka, "Брокер Сообщений", "kafka", "Асинхронная обработка заявок")
+
+
+Rel(new_user, website, "Просмотр ставок, Подача заявки")
+Rel(nexisting_user, ib, "Просмотр ставок, Подача заявки, Подтверждение СМС-кодом")
+Rel(bo_manager, abs, "Обрабатывает заявки")
+
+Rel(website, rates_service, "Запрос актуальных ставок", "REST API (HTTPS)")
+Rel(ib, rates_service, "Запрос персонализированных ставок", "REST API (HTTPS)")
+
+Rel(rates_service, redis, "Чтение")
+Rel(redis, rates_db, "Чтение/Запись данных")
+Rel(rates_service, abs, "Запрос/Асинхронно")
+
+Rel(ib, kafka, "Отправка заявки на депозит",)
+Rel(kafka, application_service, )
+
+Rel(website, scc, "API")
+Rel(abs, application_service,  "REST API")
+Rel(abs, sms_gateway,  "API")
+
+@enduml
+```

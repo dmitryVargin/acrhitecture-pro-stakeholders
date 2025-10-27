@@ -1,0 +1,39 @@
+﻿```puml
+@startuml Context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+
+
+title Открытие депозитов онлайн - диаграмма контекста
+
+Person(new_user, "Новый пользователь", "Просматривает ставки и подает заявку через сайт.")
+Person(existing_user, "Действующий пользователь", "Просматривает ставки и подает заявку через ИБ.")
+Person(cc_manager, "Сотрудник Кол-центра", "Обрабатывает заявки, поступившие с Сайта.")
+Person(bo_manager, "Сотрудник Бэк-офиса", "Обрабатывает и подтверждает заявки на открытие депозита в АБС.")
+
+
+System(abs, "Автоматизированная Банковская Система (АБС)", "Обслуживает большую часть систем банка")
+System(scc, "Система Кол-центра", "Система для управления клиентскими обращениями")
+System(sms_gateway, "СМС-шлюз", "Система для отправки sms пользователям.")
+System(website, "Сайт", "Предоставляет информацию об услугах банка")
+System(ib, "Интернет-банк", "Обслуживает платежи и переводы действующих пользователей")
+System(deposit_service, "Сервисы Онлайн-депозитов", "Предоставление ставок и прием заявок ")
+
+
+Rel(new_user, website,)
+Rel(existing_user, ib, )
+
+Rel(website, deposit_service, )
+Rel(ib, deposit_service, )
+
+Rel(deposit_service, abs,)
+Rel(abs, sms_gateway,)
+
+Rel(website, scc, )
+Rel(ib, abs, )
+
+Rel(bo_manager, abs,)
+Rel(cc_manager, scc,)
+
+@enduml
+```
