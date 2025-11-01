@@ -1,0 +1,58 @@
+﻿@startuml container_diagram_credit
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title  Онлайн-подача заявок на кредит — диаграмма контейнеров (протоколы и границы доверия)
+
+' Акторы
+Person(client, "Клиент", "Подает заявку на кредит онлайн")
+Person(credit_manager, "Менеджер бэк-офиса кредитов", "Обрабатывает кредитные заявки")
+Person(front_office_manager, "Менеджер фронт-офиса", "Проводит идентификацию и выдает кредиты в отделении")
+
+' Внешние системы
+System_Ext(credit_bureau, "Бюро кредитных историй", "REST API для получения кредитных историй")
+System_Ext(sms_gateway, "СМС-шлюз телеком-оператора", "SMS API (HTTP/SMPP)")
+
+' Внутренний контур банка
+Container_Boundary(internal, "Внутренний контур банка") {
+  Container(internet_bank, "Интернет-банк", "ASP.NET MVC 4.5", "Отображение предодобренных предложений и подача заявок")
+  Container(website, "Веб-сайт банка", "React.js + PHP", "Информация о кредитах и подача заявок новыми клиентами")
+
+  Container(api_gateway, "API-шлюз", "Java Spring Boot", "Фасад: прием POST /applications (OAuth2, Idempotency-Key), валидация, маршрутизация")
+  Container(kafka, "Apache Kafka", "Message Broker", "Асинхронная передача заявок (publish/subscribe)")
+  Container(application_service, "Сервис заявок на кредит", "Java Spring Boot + PostgreSQL", "Прием от API-шлюза, валидация/идемпотентность, публикация в Kafka; хранение истории заявок")
+  Container(redis_cache, "Redis Cache", "In-Memory Cache", "Кэширование предодобренных предложений (TCP)")
+
+  Container(credit_scoring, "Система кредитного скоринга", "Python Flask + PostgreSQL", "ML-модели оценки кредитного риска; потребитель заявок из Kafka")
+  Container(credit_pipeline, "Кредитный конвейер", "Camunda BPM + Oracle", "Обработка одобренных кредитных заявок менеджерами")
+  Container(abs_system, "АБС", "Oracle + PL/SQL + Delphi", "Учет кредитных операций; мастер-данные")
+  Container(call_center_system, "Система кол-центра", "React.js + Java Spring Boot + PostgreSQL", "Консультации клиентов по кредитным заявкам")
+}
+
+' Связи: команды/события и протоколы
+Rel(client, internet_bank, "HTTPS (OAuth2)")
+Rel(client, website, "HTTPS")
+Rel(client, front_office_manager, "Визит/звонок")
+
+Rel(internet_bank, api_gateway, "POST /applications (HTTPS+OAuth2)\nHeaders: Idempotency-Key, X-Trace-Id")
+Rel(website, api_gateway, "POST /applications (HTTPS)\nAnti-bot: reCAPTCHA; Rate limit")
+Rel(api_gateway, application_service, "POST /applications (REST mTLS)\nSchema validation; retries/backoff")
+Rel(application_service, kafka, "Publish applications.v1 (Kafka REST Proxy)\nDelivery: at-least-once")
+Rel(kafka, credit_scoring, "Subscribe applications.v1 (Kafka, consumer group)")
+
+Rel(credit_scoring, credit_bureau, "REST/HTTPS (OAuth2)\nTimeouts: 3s/10s; Retry with exp. backoff; Rate limit")
+Rel(abs_system, credit_scoring, "Данные клиента для скоринга: DB/файл (ежедневно) + REST on-demand")
+
+Rel(credit_scoring, credit_pipeline, "REST API (HTTPS) — только одобренные заявки")
+Rel(credit_pipeline, abs_system, "Передача в АБС для выдачи: REST/DB по процессу")
+
+Rel(api_gateway, redis_cache, "GET offers (TCP) — чтение витрины")
+Rel(credit_scoring, redis_cache, "PUT offers (TCP) — обновление витрины")
+
+Rel(abs_system, sms_gateway, "SMS API (HTTP/SMPP) — OTP/статусы; Timeout 5s; Retry x3")
+Rel(abs_system, call_center_system, "REST API (HTTPS) — статусы заявок")
+Rel(call_center_system, client, "Телефонный звонок")
+
+Rel(front_office_manager, abs_system, "АБС UI")
+Rel(credit_manager, credit_pipeline, "BPM UI")
+
+@enduml
