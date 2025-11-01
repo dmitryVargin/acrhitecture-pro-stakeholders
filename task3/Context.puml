@@ -3,7 +3,6 @@
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
 
 
-
 title Открытие депозитов онлайн - диаграмма контекста
 
 Person(new_user, "Новый пользователь", "Просматривает ставки и подает заявку через сайт.")
@@ -17,23 +16,24 @@ System(scc, "Система Кол-центра", "Система для упр�
 System(sms_gateway, "СМС-шлюз", "Система для отправки sms пользователям.")
 System(website, "Сайт", "Предоставляет информацию об услугах банка")
 System(ib, "Интернет-банк", "Обслуживает платежи и переводы действующих пользователей")
-System(deposit_service, "Сервисы Онлайн-депозитов", "Предоставление ставок и прием заявок ")
+System(deposit_service, "Сервис ставок", "Предоставление ставок и прием заявок ")
+System(api_gateway, "API‑шлюз", "Фасад: authN/Z, rate limit, идемпотентность; REST Proxy к Kafka")
 
 
-Rel(new_user, website,)
+Rel(new_user, website, )
 Rel(existing_user, ib, )
 
 Rel(website, deposit_service, )
-Rel(ib, deposit_service, )
+Rel(ib, api_gateway, "Подача заявки", "HTTPS/JWT")
+Rel(api_gateway, deposit_service, "Маршрутизация/публикация событий", "REST Proxy → Kafka")
 
-Rel(deposit_service, abs,)
-Rel(abs, sms_gateway,)
+Rel(deposit_service, abs, )
+Rel(abs, sms_gateway, )
 
 Rel(website, scc, )
-Rel(ib, abs, )
 
-Rel(bo_manager, abs,)
-Rel(cc_manager, scc,)
+Rel(bo_manager, abs, )
+Rel(cc_manager, scc, )
 
 @enduml
 ```

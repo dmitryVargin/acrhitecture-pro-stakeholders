@@ -18,8 +18,8 @@ Container(sms_gateway, "СМС-шлюз", "Внешнее API", "Отправк�
 Container(rates_service, "Сервис Ставок", "Java/Spring Boot или .NET Core", "Предоставляет актуальные и персонализированные ставки.")
 Container(rates_db, "База Данных Ставок", "PostgreSQL", "Хранит ставки")
 Container(redis, "Redis", , "Кеширует ставки")
-Container(application_service, "Сервис Заявок", "Java/Spring Boot или .NET Core", "Получает и хранит заявки из интернет банка")
-Container(kafka, "Брокер Сообщений", "kafka", "Асинхронная обработка заявок")
+Container(kafka, "Брокер Сообщений", "Kafka", "Асинхронная обработка заявок")
+Container(api_gateway, "API-шлюз", "Gateway", "AuthN/Z, rate limit, идемпотентность; REST Proxy к Kafka")
 
 
 Rel(new_user, website, "Просмотр ставок, Подача заявки")
@@ -33,11 +33,12 @@ Rel(rates_service, redis, "Чтение")
 Rel(redis, rates_db, "Чтение/Запись данных")
 Rel(rates_service, abs, "Запрос/Асинхронно")
 
-Rel(ib, kafka, "Отправка заявки на депозит",)
-Rel(kafka, application_service, )
+Rel(ib, api_gateway, "Отправка заявки на депозит", "HTTPS/JWT, Idempotency-Key")
+Rel(api_gateway, kafka, "Публикация события заявки", "Kafka REST Proxy")
+Rel(kafka, rates_service, )
 
 Rel(website, scc, "API")
-Rel(abs, application_service,  "REST API")
+Rel(abs, rates_service,  "REST API")
 Rel(abs, sms_gateway,  "API")
 
 @enduml
