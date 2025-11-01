@@ -1,0 +1,27 @@
+﻿```puml
+@startuml Container_KC_Rates
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+
+title Передача ставок в кол-центр — диаграмма контейнеров
+
+Person(cc_manager, "Сотрудник кол-центра")
+  
+Container(rates_service, "Сервис ставок", "Java/Spring Boot, PostgreSQL, Redis", "Предоставляет актуальные ставки по депозитам; витрина. Источник правды — АБС.")
+
+Container(scc_backend, "Система кол-центра (бэкенд)", "Java Spring Boot")
+Container(scc_frontend, "Система кол-центра (фронтенд)", "React.js", "Интерфейс оператора КЦ")
+Container(abs, "АБС", "Delphi + Oracle DB", "Основная учетная система, мастер-данные по ставкам")
+
+System(partner_cc, "Система партнёрского КЦ", "Внешняя система, принимает файл")
+
+Rel(cc_manager, scc_frontend, "Использует", "UI")
+Rel(scc_frontend, scc_backend, "Запрос данных", "HTTP")
+
+Rel(scc_backend, rates_service, "Запрос актуальных ставок", "REST API (HTTPS)")
+Rel(rates_service, abs, "Синхронизация ставок (по расписанию)", "DB/файл + REST")
+
+Rel_Right(rates_service, partner_cc, "Передает файл со ставками (XLS/XLSX)", "SFTP (SSH)")
+
+@enduml
+```

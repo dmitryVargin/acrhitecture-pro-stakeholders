@@ -1,0 +1,37 @@
+﻿@startuml context_diagram_credit
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_LEFT_RIGHT()
+
+title  Онлайн-подача заявок на кредит — диаграмма контекста (протоколы и границы доверия)
+
+' Акторы
+Person(client, "Клиент", "Подает заявку на кредит онлайн")
+Person(call_center_manager, "Менеджер кол-центра", "Назначает встречи, информирует клиентов")
+Person(front_office_manager, "Менеджер фронт-офиса", "Идентифицирует и выдает кредиты в отделении")
+Person(credit_manager, "Менеджер бэк-офиса кредитов", "Обрабатывает одобренные заявки в кредитном конвейере")
+
+' Границы доверия
+System_Boundary(external, "Внешние системы") {
+  System_Ext(credit_bureau, "Бюро кредитных историй", "REST API: кредитные истории")
+  System_Ext(sms_gateway, "СМС-шлюз телеком-оператора", "SMS API (HTTP/SMPP)")
+}
+System_Boundary(internal, "Внутренний контур банка") {
+  System(banking_system, "Банковская система 'Стандарт'", "Подача и обработка кредитных заявок")
+}
+
+' Связи с протоколами и командами/событиями
+Rel(client, banking_system, "GET /offers (HTTPS)\nPOST /applications (HTTPS+OAuth2)")
+Rel(banking_system, credit_bureau, "REST/HTTPS (OAuth2)\nTimeouts: 3s/10s; Retry w/ backoff")
+Rel(banking_system, sms_gateway, "SMS API (HTTP/SMPP)\nОтправка OTP/статусов")
+Rel(sms_gateway, client, "SMS")
+
+' Прочие взаимодействия (подписи добавлены для полноты)
+Rel_U(banking_system, call_center_manager, "Экспорт статусов/звонки (внутр. процессы)")
+Rel_U(call_center_manager, client, "Телефонный звонок")
+Rel(banking_system, credit_manager, "Направление одобрений/задач")
+Rel(credit_manager, banking_system, "Подтверждение выдачи/условий")
+Rel(client, front_office_manager, "Визит в отделение")
+Rel(front_office_manager, banking_system, "Операции в АБС (UI)")
+
+@enduml

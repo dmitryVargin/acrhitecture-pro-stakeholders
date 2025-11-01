@@ -1,0 +1,51 @@
+﻿```puml
+@startuml Containers
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+
+title Диаграмма Контейнеров (Уровень 2 C4) - Открытие депозитов онлайн (MVP)
+
+Person(new_user, "Новый пользователь")
+Person(nexisting_user, "Существующий пользователь")
+Person(bo_manager, "Сотрудник Бэк-офиса")
+
+' Границы доверия
+Container_Boundary(ext, "Внешние системы / Пользователи") {
+  Container(website, "Сайт", "PHP + React.js", "UI")
+  Container(ib, "Интернет-банк (ИБ)", "ASP.NET MVC 4.5 / MS SQL","UI")
+  Container(scc, "Система Кол-центра", "Внешнее ПО", "Обработка заявок с Сайта")
+  Container(sms_gateway, "СМС-шлюз", "Внешнее API", "Отправка SMS")
+}
+
+
+Container_Boundary(internal, "Внутренний контур банка") {
+  Container(api_gateway, "API-шлюз", "Gateway", "AuthN/Z, rate limit, идемпотентность; REST Proxy к Kafka")
+  Container(kafka, "Брокер Сообщений", "Kafka", "Асинхронная обработка заявок")
+
+  Container(rates_service, "Сервис Ставок", "Java/Spring Boot или .NET Core", "Предоставляет актуальные и персонализированные ставки; приём заявок")
+  Container(rates_db, "База Данных Ставок", "PostgreSQL", "Хранит ставки")
+  Container(redis, "Redis", "In-memory cache", "Кеширует ставки")
+  Container(abs, "АБС", "Delphi + Oracle DB", "Основная учетная система, мастер-данные по ставкам")
+}
+
+' Направления и протоколы
+Rel(new_user, website, "Просмотр ставок, подача заявки", "HTTPS/TLS")
+Rel(nexisting_user, ib, "Просмотр ставок, подача заявки, OTP", "HTTPS/TLS")
+Rel(bo_manager, abs, "Обрабатывает заявки", "АБС UI/клиент")
+
+Rel(website, rates_service, "Запрос актуальных ставок", "REST API (HTTPS)")
+Rel(ib, rates_service, "Запрос персонализированных ставок", "REST API (HTTPS)")
+
+Rel(rates_service, redis, "Чтение/Запись кеша", "TCP")
+Rel(rates_service, rates_db, "Чтение/Запись ставок", "JDBC/SSL")
+Rel(rates_service, abs, "Синхронизация ставок; обмен по заявкам (batch)", "DB/файл + REST по расписанию")
+
+Rel(ib, api_gateway, "Отправка заявки на депозит", "HTTPS/JWT + Idempotency-Key")
+Rel(api_gateway, kafka, "Публикация события заявки", "Kafka REST Proxy")
+Rel(kafka, rates_service, "Доставка события заявки", "Kafka (consumer)")
+
+Rel(website, scc, "Подача заявки с сайта", "REST API (HTTPS)")
+Rel(abs, sms_gateway, "OTP/уведомления клиентам", "HTTP/SMPP")
+
+@enduml
+```

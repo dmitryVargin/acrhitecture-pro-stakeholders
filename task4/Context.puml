@@ -1,0 +1,28 @@
+﻿```puml
+@startuml Context_KC_Rates
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title Передача ставок в кол-центр — диаграмма контекста
+
+Person(user, "Клиент", "Звонит в кол-центр")
+Person(partner_manager, "Сотрудник партнёрского кол-центра", "Консультирует по ставкам")
+Person(cc_manager, "Сотрудник кол-центра", "Консультирует по ставкам")
+
+System(rates_system, "Сервис ставок", "Витрина ставок; источник правды — АБС")
+System(scc, "Система кол-центра", "Внутренняя платформа операторов")
+System_Ext(partner_cc, "Система партнёрского кол-центра", "Внешняя платформа Партнёра")
+System(abs, "Автоматизированная банковская система (АБС)", "Источник правды по ставкам")
+
+Rel(user, scc, "Обращение клиента", "Телефония/голос")
+Rel(user, partner_cc, "Обращение клиента", "Телефония/голос")
+
+Rel(cc_manager, scc, "Работа в системе", "UI")
+Rel(partner_manager, partner_cc, "Работа в системе", "UI")
+
+Rel(scc, rates_system, "Запрос актуальных ставок", "REST API (HTTPS)")
+Rel(rates_system, partner_cc, "Передача файла со ставками", "SFTP (SSH)")
+
+Rel_Right(rates_system, abs, "Синхронизация ставок (по расписанию)", "DB/файл + REST")
+
+@enduml
+```

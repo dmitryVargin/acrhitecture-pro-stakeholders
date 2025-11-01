@@ -1,0 +1,47 @@
+﻿```puml
+@startuml Context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+
+title Открытие депозитов онлайн - диаграмма контекста (с протоколами и границами доверия)
+
+Person(new_user, "Новый пользователь", "Просматривает ставки и подает заявку через сайт.")
+Person(existing_user, "Действующий пользователь", "Просматривает ставки и подает заявку через ИБ.")
+Person(cc_manager, "Сотрудник Кол-центра", "Обрабатывает заявки, поступившие с Сайта.")
+Person(bo_manager, "Сотрудник Бэк-офиса", "Обрабатывает и подтверждает заявки на открытие депозита в АБС.")
+
+' Границы доверия
+System_Boundary(ext, "Внешние системы / Пользователи") {
+  System(website, "Сайт", "Предоставляет информацию об услугах банка")
+  System(ib, "Интернет-банк", "Обслуживает платежи и переводы действующих пользователей")
+  System(scc, "Система Кол-центра", "Система для управления клиентскими обращениями")
+  System(sms_gateway, "СМС-шлюз", "Система для отправки SMS пользователям")
+}
+
+
+System_Boundary(internal, "Внутренний контур банка") {
+  System(api_gateway, "API‑шлюз", "Фасад: authN/Z, rate limit, идемпотентность; REST Proxy к Kafka")
+  System(kafka, "Брокер Сообщений", "Kafka", "Асинхронная доставка заявок")
+  System(abs, "Автоматизированная Банковская Система (АБС)", "Учетная система, мастер‑данные по ставкам")
+  System(deposit_service, "Сервис ставок", "Предоставление ставок и прием заявок")
+}
+
+' Направления и протоколы
+Rel(new_user, website, "Просмотр ставок, подача заявки", "HTTPS/TLS")
+Rel(existing_user, ib, "Работа в ИБ: выбор/заявка", "HTTPS/TLS")
+
+Rel(website, deposit_service, "Запрос актуальных ставок", "REST API (HTTPS)")
+Rel(ib, api_gateway, "Подача заявки", "HTTPS/JWT + Idempotency-Key")
+Rel(api_gateway, kafka, "Публикация события заявки", "Kafka REST Proxy")
+Rel(kafka, deposit_service, "Доставка события заявки", "Kafka (consumer)")
+
+Rel(deposit_service, abs, "Синхронизация ставок; обмен по заявкам (batch)", "DB/файл + REST по расписанию")
+Rel(abs, sms_gateway, "OTP/уведомления клиентам", "HTTP/SMPP")
+
+Rel(website, scc, "Передача заявки", "REST API (HTTPS)")
+
+Rel(bo_manager, abs, "Обработка заявок/операции", "АБС UI/клиент")
+Rel(cc_manager, scc, "Работа с обращениями", "UI")
+
+@enduml
+```
